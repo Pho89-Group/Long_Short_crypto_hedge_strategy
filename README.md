@@ -1,197 +1,115 @@
-# 对冲策略交易机器人
+Bot Giao Dịch Chiến Lược Hedge (Đối Ứng)
+Một bot giao dịch dựa trên Binance Futures API, sử dụng chiến lược đối ứng mở đồng thời cả vị thế Mua (Long) và Bán (Short).
 
-一个基于币安期货API的多空双开对冲策略交易机器人。
+Ý tưởng chiến lược
+Chiến lược này áp dụng tư duy giao dịch mở song song Long/Short đối ứng, với logic cốt lõi như sau:
 
-## 策略思路
+Mở vị thế thị trường trung tính (Market Neutral): Mở đồng thời lệnh Long và Short cho cùng một cặp giao dịch để hình thành vị thế đối ứng. Như vậy, dù thị trường tăng hay giảm, lãi lỗ của hai bên sẽ triệt tiêu lẫn nhau, về lý thuyết đạt được trạng thái trung tính với thị trường.
 
-本策略采用**多空双开对冲**的交易思路，核心逻辑如下：
+Cắt lỗ bên thua cuộc: Khi thị trường xuất hiện xu hướng đơn biến mạnh, một bên sẽ có lãi và bên còn lại sẽ lỗ. Khi mức lỗ của bên thua vượt quá ngưỡng thiết lập (mặc định 1%), hệ thống sẽ ngay lập tức cắt lỗ để kiểm soát rủi ro.
 
-1. **市场中性开仓**：同时对同一交易对开多单和空单，形成对冲持仓。这样无论市场上涨还是下跌，多空双方的盈亏会相互抵消，理论上可以实现市场中性。
+Chốt lời động (Trailing Stop) cho bên thắng: Sau khi bên lỗ đã cắt vị thế, bên có lợi nhuận sẽ chuyển sang chế độ chốt lời động. Hệ thống thiết lập 11 mức chốt lời động để điều chỉnh tỷ lệ dựa trên biên độ lợi nhuận:
 
-2. **亏损方止损**：当市场出现单边行情时，一方会盈利，另一方会亏损。当亏损方的亏损超过设定的止损阈值（默认1%）时，立即止损平仓，控制风险。
+Khi lợi nhuận nhỏ (0.2% - 1.5%): Sử dụng mức hồi quy cố định hoặc tỷ lệ hồi quy nhỏ.
 
-3. **盈利方移动止盈**：当亏损方止损后，盈利方进入移动止盈模式。系统设置了11档移动止盈机制，根据盈利幅度动态调整止盈比例：
-   - 盈利较小时（0.2%-1.5%），使用固定回撤或较小比例回撤
-   - 盈利较大时（2.0%-10.0%），使用比例回撤，允许更大的回撤空间以捕捉更大涨幅
+Khi lợi nhuận lớn (2.0% - 10.0%): Sử dụng tỷ lệ hồi quy lớn hơn để tối ưu hóa không gian tăng trưởng và bắt trọn con sóng lớn.
 
-4. **风险控制**：通过设置累计总收益的亏损阈值，当整体亏损超过设定值时自动停止交易，避免持续亏损。
+Kiểm soát rủi ro: Thiết lập ngưỡng lỗ cho tổng lợi nhuận tích lũy. Nếu tổng lỗ vượt quá giá trị cài đặt, bot sẽ tự động dừng giao dịch để tránh thua lỗ kéo dài.
 
-**策略优势**：
-- 市场中性，不依赖方向判断
-- 通过移动止盈最大化盈利方的收益
-- 严格的止损机制控制单次亏损
-- 整体风险可控，有明确的停止条件
+Ưu điểm của chiến lược:
 
-**适用场景**：
-- 震荡市场或波动较大的市场
-- 适合捕捉短期价格波动
-- 需要严格控制风险的交易环境
+Trung tính với thị trường, không phụ thuộc vào việc dự đoán hướng đi của giá.
 
-## 功能特性
+Tối đa hóa lợi nhuận của bên thắng thông qua cơ chế chốt lời động.
 
-- ✅ **多空双开**: 同时开多单和空单，实现市场中性策略
-- ✅ **智能止损**: 当一方亏损超过1%时，亏损方自动止损
-- ✅ **移动止盈**: 盈利方进入11档移动止盈模式，最大化收益
-- ✅ **单边监控**: 支持单边持仓的移动止盈监控
-- ✅ **钉钉通知**: 支持交易通知和持仓状态推送
-- ✅ **日志记录**: 完整的日志记录系统，支持日志轮转
+Cơ chế cắt lỗ nghiêm ngặt để kiểm soát rủi ro trên từng lệnh.
 
-## 项目结构
+Rủi ro tổng thể có thể kiểm soát với các điều kiện dừng rõ ràng.
 
-```
+Sử dụng trong trường hợp:
+
+Thị trường đi ngang (sideway) hoặc thị trường có biến động mạnh (high volatility).
+
+Phù hợp để bắt các biến động giá ngắn hạn.
+
+Môi trường giao dịch yêu cầu kiểm soát rủi ro chặt chẽ.
+
+Tính năng đặc sắc
+✅ Mở kép Long/Short: Mở đồng thời cả hai vị thế để duy trì chiến lược trung tính.
+✅ Cắt lỗ thông minh: Tự động đóng vị thế khi một bên lỗ vượt quá 1%.
+✅ Chốt lời động (Trailing Stop): 11 mức chốt lời động giúp tối đa hóa lợi nhuận cho bên thắng.
+✅ Giám sát đơn biên: Hỗ trợ theo dõi chốt lời động ngay cả khi chỉ còn giữ vị thế một phía.
+
+✅ Thông báo DingTalk: Hỗ trợ đẩy thông báo giao dịch và trạng thái vị thế thời gian thực.
+
+✅ Ghi nhật ký (Logs): Hệ thống log hoàn chỉnh, hỗ trợ xoay vòng (rotation) dữ liệu.
+
+Cấu trúc dự án
 hedge_strategy/
-├── main_hedge.py                    # 主程序入口
-├── config.json                      # 配置文件
-├── requirements.txt                 # 依赖包清单
-├── strategies/                      # 策略模块
-│   ├── base_strategy.py            # 策略基类
-│   └── hedge_strategy.py           # 对冲策略实现
-├── position_manager/                # 仓位管理模块
-│   ├── hedge_stop_loss_manager.py   # 对冲策略止盈止损管理器
-│   ├── stop_loss_manager.py        # 通用止盈止损管理器
-│   └── position_monitor.py        # 独立监控入口
-└── utils/                           # 工具模块
-    ├── config_loader.py            # 配置加载
-    ├── exchange_utils.py           # 交易所工具函数
-    ├── logger_setup.py             # 日志配置
-    ├── math_utils.py               # 数学计算工具
-    └── notification.py             # 通知模块
-```
+├── main_hedge.py                    # Điểm vào chương trình chính
+├── config.json                      # Tệp cấu hình
+├── requirements.txt                 # Danh sách thư viện phụ thuộc
+├── strategies/                      # Các mô-đun chiến lược
+│   ├── base_strategy.py            # Lớp cơ sở (Base class)
+│   └── hedge_strategy.py           # Thực thi chiến lược đối ứng
+├── position_manager/                # Mô-đun quản lý vị thế
+│   ├── hedge_stop_loss_manager.py   # Quản lý chốt lời/cắt lỗ đối ứng
+│   ├── stop_loss_manager.py        # Quản lý chốt lời/cắt lỗ chung
+│   └── position_monitor.py        # Điểm vào giám sát độc lập
+└── utils/                           # Các mô-đun công cụ
+    ├── config_loader.py            # Tải cấu hình
+    ├── exchange_utils.py           # Công cụ hỗ trợ sàn giao dịch
+    ├── logger_setup.py             # Cấu hình nhật ký
+    ├── math_utils.py               # Công cụ tính toán toán học
+    └── notification.py             # Mô-đun thông báo
+Cài đặt
+Clone hoặc tải dự án về máy địa phương.
 
-## 安装
+Cài đặt các thư viện phụ thuộc:
 
-1. 克隆或下载项目到本地
+Bash
 
-2. 安装依赖包：
-```bash
 pip install -r requirements.txt
-```
+Cấu hình config.json:
 
-3. 配置 `config.json`：
-   ```bash
-   # 复制示例配置文件
-   cp config.example.json config.json
-   
-   # 编辑 config.json，填入你的API密钥等信息
-   ```
-   
-   配置文件模板：
-   ```json
-   {
-       "binance": {
-           "apiKey": "你的API密钥",
-           "secret": "你的API密钥",
-           "leverage": 1.0
-       },
-       "dingtalk_webhook": "钉钉Webhook地址（可选）",
-       "enable_dingtalk_notification": false,
-       "monitor_interval": 60,
-       "leverage": 6,
-       "max_total_profit_loss_usdt": -10.0,
-       "min_total_profit_usdt": null,
-       "stop_loss": {
-           "stop_loss_pct": 1,
-           ...
-       },
-       "tradingPairs": {
-           "RIVER-USDT-SWAP": {
-               "long_amount_usdt": 20,
-               "short_amount_usdt": 20,
-               "value_multiplier": 2.5,
-               "ema": 240
-           }
-       }
-   }
-   ```
-   
-   ⚠️ **重要**：`config.json` 文件包含敏感信息，已被 `.gitignore` 忽略，不会被提交到Git仓库。
+Bash
 
-## 使用方法
+# Sao chép tệp cấu hình mẫu
+cp config.example.json config.json
 
-### 运行主程序
-```bash
+# Chỉnh sửa config.json, điền API Key và các thông tin cần thiết
+Cách sử dụng
+Chạy chương trình chính
+Bash
+
 python main_hedge.py
-```
+Chạy độc lập trình giám sát Chốt lời/Cắt lỗ
+Bash
 
-### 独立运行止盈止损监控
-```bash
 python position_manager/position_monitor.py
-```
+Giải thích cấu hình chính
+binance: Cấu hình Binance API.
 
-## 配置说明
+leverage: Đòn bẩy toàn cục (Mặc định 6x).
 
-### 主要配置项
+monitor_interval: Khoảng thời gian kiểm tra lệnh (giây, mặc định 60s).
 
-- **binance**: 币安API配置
-  - `apiKey`: API密钥
-  - `secret`: API密钥
-  - `leverage`: 杠杆倍数（已废弃，使用全局leverage）
+max_total_profit_loss_usdt: Ngưỡng lỗ tối đa cho phép của tổng lợi nhuận tích lũy (số âm). Nếu tổng PnL <= giá trị này, bot dừng lại.
 
-- **leverage**: 全局杠杆倍数（默认6倍）
+stop_loss: Cấu hình cắt lỗ (mặc định 1%) và 11 mức chốt lời động.
 
-- **monitor_interval**: 挂单检查间隔（秒，默认60秒）
+tradingPairs: Cấu hình cặp giao dịch, số tiền vào lệnh Long/Short (USDT).
 
-- **max_total_profit_loss_usdt**: 累计总收益的最大亏损阈值（负数），如果累计总收益 <= 此值，停止机器人
+Lưu ý quan trọng ⚠️
+Bảo mật API Key: Tuyệt đối không tiết lộ hoặc đẩy API Key lên kho lưu trữ mã nguồn.
 
-- **min_total_profit_usdt**: 累计总收益的目标盈利阈值（正数），如果累计总收益 >= 此值，停止机器人（可选，设为null则不启用）
+Môi trường thử nghiệm: Khuyến khích chạy trên Testnet trước khi đánh thật.
 
-- **stop_loss**: 止盈止损配置
-  - `stop_loss_pct`: 基础止损百分比（默认1%）
-  - 11档移动止盈配置（详见config.json）
+Chế độ vị thế: Đảm bảo tài khoản Binance đã bật Chế độ vị thế hai chiều (Hedge Mode).
 
-- **tradingPairs**: 交易对配置
-  - `long_amount_usdt`: 多单金额（USDT）
-  - `short_amount_usdt`: 空单金额（USDT）
-  - `value_multiplier`: 价值乘数
-  - `ema`: EMA周期
+Quản lý vốn: Thiết lập thông số max_total_profit_loss_usdt hợp lý để bảo vệ tài khoản.
 
-## 策略说明
+Rủi ro đòn bẩy: Đòn bẩy cao đi kèm rủi ro lớn, hãy thận trọng.
 
-### 对冲策略逻辑
-
-1. **开仓**: 同时下多单和空单限价单，降低滑点
-2. **监控**: 实时监控多空双方的盈亏情况
-3. **止损**: 当一方亏损超过配置的止损百分比（默认1%）时：
-   - 亏损方立即止损平仓
-   - 盈利方进入移动止盈模式
-4. **移动止盈**: 11档移动止盈，根据盈利幅度动态调整止盈比例
-
-### 移动止盈档位
-
-- 第1档: 阈值0.7%，比例回撤20%
-- 第2档: 阈值1.2%，固定回撤0.2%
-- 第3档: 阈值1.3%，固定回撤0.3%
-- 第4档: 阈值1.5%，固定回撤0.3%
-- 第5档: 阈值2.0%，比例回撤30%
-- 第6档: 阈值2.5%，比例回撤30%
-- 第7档: 阈值3.0%，比例回撤25%
-- 第8档: 阈值4.0%，比例回撤25%
-- 第9档: 阈值5.0%，比例回撤20%
-- 第10档: 阈值7.5%，比例回撤20%
-- 第11档: 阈值10.0%，比例回撤20%
-
-## 注意事项
-
-⚠️ **重要提示**:
-
-1. **API密钥安全**: 请妥善保管API密钥，不要提交到代码仓库
-2. **测试环境**: 建议先在测试环境（testnet）中测试
-3. **双向持仓**: 确保币安账户已开启双向持仓模式
-4. **资金管理**: 合理设置 `max_total_profit_loss_usdt`
-5. **杠杆风险**: 注意杠杆倍数设置，高杠杆可能带来较大风险
-6. **网络稳定**: 确保网络连接稳定，避免订单执行失败
-
-## 日志
-
-日志文件保存在 `log/` 目录下，文件名格式为 `integrated_bot.log.YYYY-MM-DD`，支持日志轮转（保留7天）。
-
-## 许可证
-
-本项目仅供学习和研究使用，使用本代码进行交易产生的任何损失，作者不承担责任。
-
-## 更新日志
-
-- 修复了 `exchange_utils.py` 中的重复异常处理问题
-- 添加了项目完整性检查报告
-- 添加了依赖管理文件
-
+Giấy phép (License)
+Dự án này chỉ phục vụ mục đích học tập và nghiên cứu. Tác giả không chịu trách nhiệm cho bất kỳ tổn thất tài chính nào phát sinh từ việc sử dụng mã nguồn này để giao dịch thực tế.
